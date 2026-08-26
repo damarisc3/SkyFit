@@ -1,7 +1,7 @@
 # Sky Fit - Tarea 2
 
 ## Datos del estudiante
-- **Nombre completo:** Damaris Luz Marié Cabrera Cariño
+- **Nombre completo:** Damaris Luz Marié Cabrera Carino
 - **Carné:** 9490-23-3042
 
 ## Descripción del proyecto
