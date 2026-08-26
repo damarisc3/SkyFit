@@ -1,13 +1,132 @@
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+:root {
+  --sf-dark: #0D3B54;
+  --sf-blue: #3E8FB0;
+  --sf-light-blue: #CFE9F5;
+  --sf-pale: #E9F5FA;
+  --sf-bg: #F7FBFD;
+  --sf-accent: #6FB8D9;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+body {
+  font-family: 'Quicksand', sans-serif;
+  background-color: var(--sf-bg);
+  color: var(--sf-dark);
+}
+
+h1, h2, h3, h4, h5, .navbar-brand {
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+  color: var(--sf-dark);
+}
+
+/* Navbar */
+.navbar-skyfit {
+  background: linear-gradient(90deg, var(--sf-dark), var(--sf-blue));
+}
+.navbar-skyfit .nav-link {
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: color 0.2s ease;
+}
+.navbar-skyfit .nav-link:hover,
+.navbar-skyfit .nav-link.active {
+  color: var(--sf-light-blue) !important;
+}
+.navbar-skyfit .navbar-brand {
+  color: #fff !important;
+  font-weight: 700;
+  font-size: 1.5rem;
+}
+
+/* Cards de producto */
+.card-product {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(13, 59, 84, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.card-product:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 24px rgba(13, 59, 84, 0.18);
+}
+.card-product img {
+  height: 260px;
+  object-fit: cover;
+}
+.card-product .badge-marca {
+  color: var(--sf-blue);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Botones */
+.btn-skyfit {
+  background-color: var(--sf-dark);
+  border: none;
+  border-radius: 30px;
+  padding: 8px 22px;
+  font-weight: 600;
+  transition: background-color 0.2s ease;
+}
+.btn-skyfit:hover {
+  background-color: var(--sf-blue);
+}
+.btn-outline-skyfit {
+  border: 2px solid var(--sf-dark);
+  color: var(--sf-dark);
+  border-radius: 30px;
+  font-weight: 600;
+  background: transparent;
+}
+.btn-outline-skyfit:hover {
+  background-color: var(--sf-dark);
+  color: #fff;
+}
+
+/* Hero / Carousel */
+.hero-caption h3 {
+  color: #fff;
+  font-size: 2.2rem;
+}
+.carousel-caption {
+  background: rgba(13, 59, 84, 0.45);
+  border-radius: 12px;
+  padding: 20px 30px;
+}
+
+/* Sección de bienvenida */
+.welcome-section {
+  text-align: center;
+  padding: 40px 0;
+}
+.welcome-section p {
+  max-width: 700px;
+  margin: 0 auto;
+  color: var(--sf-blue);
+}
+
+/* Footer */
+.footer-skyfit {
+  background-color: var(--sf-dark);
+  color: var(--sf-pale);
+}
+.footer-skyfit a {
+  color: var(--sf-light-blue);
+}
+
+/* Accordion / Tabla */
+.accordion-button:not(.collapsed) {
+  background-color: var(--sf-pale);
+  color: var(--sf-dark);
+}
+.accordion-button:focus {
+  box-shadow: none;
+  border-color: var(--sf-light-blue);
+}
+table thead {
+  background-color: var(--sf-dark);
+  color: #fff;
 }
