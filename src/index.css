@@ -130,3 +130,38 @@ table thead {
   background-color: var(--sf-dark);
   color: #fff;
 }
+/* Sesión / Login / Perfil (Tarea 3) */
+.navbar-skyfit .btn-login {
+  border: 2px solid var(--sf-light-blue);
+  border-radius: 30px;
+  padding: 4px 16px !important;
+  color: #fff !important;
+}
+.navbar-skyfit .btn-login:hover,
+.navbar-skyfit .btn-login.active {
+  background-color: var(--sf-light-blue);
+  color: var(--sf-dark) !important;
+}
+.navbar-skyfit .dropdown-menu {
+  border-radius: 12px;
+  border: none;
+  box-shadow: 0 8px 20px rgba(13, 59, 84, 0.18);
+}
+.card-login,
+.card-perfil {
+  border: none;
+  border-radius: 16px;
+}
+.avatar-perfil {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sf-blue), var(--sf-dark));
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

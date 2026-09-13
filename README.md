@@ -1,70 +1,102 @@
-# Getting Started with Create React App
+# Sky Fit — Tienda en línea (Tarea 3: Estado global y autenticación)
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Tienda en línea de ropa fitness femenina desarrollada con **React + React-Bootstrap + React Router**.
+Esta entrega parte de la Tarea 2 y agrega una **arquitectura de estado global** para manejar la sesión
+de la usuaria (Login / Logout / Perfil) de forma transversal en toda la aplicación.
 
-## Available Scripts
+**Sitio publicado:** [PENDIENTE — agregar enlace de Netlify]
 
-In the project directory, you can run:
+**Repositorio:** https://github.com/damarisc3/SkyFit — rama `Tarea3`
 
-### `npm start`
+## Integrantes
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+| Nombre completo | Carné | Secciones y componentes desarrollados |
+|---|---|---|
+| Damaris Luz Marié Cabrera Carino | 9490-23-3042 | Todo el proyecto (trabajo individual): `AuthContext`, `Login`, `Perfil`, `RutaProtegida`, adaptación de `NavigationBar`, datos simulados, estilos, README y despliegue. |
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+**Curso:** Desarrollo Web — 8vo semestre, Ingeniería en Sistemas, Universidad Mariano Gálvez de Guatemala.
 
-### `npm test`
+## Arquitectura de estado seleccionada: Opción A — Context API + `useReducer`
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+### Justificación
 
-### `npm run build`
+Elegí la combinación nativa `useContext` + `useReducer` en lugar de Redux Toolkit por estas razones:
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+1. **Tamaño del estado.** El estado global de Sky Fit es pequeño (sesión y datos de la usuaria). Redux Toolkit
+   está pensado para aplicaciones con muchos *slices* y lógica asíncrona compleja; aquí sería más
+   infraestructura que problema.
+2. **Cero dependencias extra.** Context y `useReducer` vienen incluidos en React. No hay que instalar
+   `@reduxjs/toolkit` ni `react-redux`, lo que reduce el tamaño del bundle y simplifica el mantenimiento.
+3. **Mismo patrón que Redux, sin el boilerplate.** El reducer sigue el modelo `(estado, acción) => nuevoEstado`,
+   con acciones tipadas y estado inmutable. Si el proyecto creciera, migrar a Redux Toolkit sería directo
+   porque la estructura ya es la misma.
+4. **Sin *prop drilling*.** Ningún componente recibe la sesión por props: `NavigationBar`, `Login`, `Perfil` y
+   `RutaProtegida` la consumen directamente con hooks personalizados.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+### Cómo está implementada
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Archivo: `src/context/AuthContext.jsx`
 
-### `npm run eject`
+- **`initialState`**: `{ isAuthenticated: false, user: null, error: null, loading: false }`
+- **`authReducer`** — gestiona 6 acciones:
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+  | Acción | Efecto |
+  |---|---|
+  | `LOGIN_START` | Activa `loading` y limpia errores mientras se verifica la credencial. |
+  | `LOGIN` | Guarda la información de la usuaria en `user` y pone `isAuthenticated = true`. |
+  | `LOGIN_ERROR` | Guarda el mensaje de error y deja la sesión sin autenticar. |
+  | `LOGOUT` | Limpia los datos de sesión y restablece `isAuthenticated = false`. |
+  | `ACTUALIZAR_PERFIL` | Modifica campos del usuario sin cerrar sesión. |
+  | `LIMPIAR_ERROR` | Borra el error mostrado en el formulario. |
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+- **`AuthProvider`**: encapsula el `useReducer` y provee dos contextos separados (estado y `dispatch`).
+  Además sincroniza la sesión con `localStorage` para que sobreviva a un refresh.
+- **Hooks personalizados**:
+  - `useAuthState()` → devuelve el estado de sesión.
+  - `useAuthDispatch()` → devuelve la función `dispatch`.
+  - `useAuth()` → atajo que devuelve estado + acciones ya envueltas (`login`, `logout`, `actualizarPerfil`).
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+## Componentes
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+| Archivo | Descripción |
+|---|---|
+| `src/context/AuthContext.jsx` | Proveedor global de autenticación: estado inicial, reducer, `AuthProvider` y hooks personalizados. |
+| `src/data/usuarios.js` | "Base de datos" simulada de clientas (con membresía y pedidos) y función `autenticar()` que simula la consulta a un servidor con una promesa. |
+| `src/pages/Login.jsx` | Formulario de inicio de sesión con `Form`, `Card`, `Alert` y `Spinner` de React-Bootstrap. Valida correo (formato) y contraseña (mínimo 6 caracteres); con credenciales válidas despacha `LOGIN` con datos estructurados (nombre, correo, rol, fecha de acceso). |
+| `src/pages/Perfil.jsx` | Dashboard de la usuaria autenticada. Lee todo del estado global y muestra nombre, correo, tipo de membresía (`Badge`), fecha de ingreso y último acceso (`ListGroup`), e historial de pedidos simulado (`Table`). Incluye botón de cerrar sesión. |
+| `src/components/RutaProtegida.jsx` | Protege la ruta `/perfil`: si no hay sesión redirige a `/login`. |
+| `src/components/NavigationBar.jsx` | Barra de navegación que reacciona en tiempo real a la sesión: sin sesión muestra "Iniciar sesión"; con sesión oculta ese botón y muestra el nombre de la usuaria, un menú con acceso al perfil y "Cerrar sesión". |
+| `src/components/Footer.jsx` | Pie de página con datos de la estudiante. |
+| `src/pages/Home.jsx` | Inicio con `Carousel` y productos destacados en `Card`. |
+| `src/pages/Catalogo.jsx` | Catálogo por categorías con `Accordion`, `Table` y `Badge`. |
+| `src/pages/ProductoDetalle.jsx` | Detalle de producto con `ListGroup` y `Modal` de garantía. |
+| `src/pages/Carrito.jsx` | Carrito simulado con `Table` y `ListGroup`. |
+| `src/pages/Registro.jsx` | Formulario de registro. |
+| `src/pages/Contacto.jsx` | Formulario de contacto. |
+| `src/App.js` | Envuelve la aplicación en `<AuthProvider>` y define las rutas, incluidas `/login` y `/perfil`. |
 
-## Learn More
+## Cuentas de prueba (autenticación simulada)
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+| Correo | Contraseña | Membresía |
+|---|---|---|
+| damaris@skyfit.com | skyfit123 | Premium |
+| ana@correo.com | ana12345 | Estándar |
+| admin@skyfit.com | admin123 | Administrador |
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+## Cómo ejecutar
 
-### Code Splitting
+```bash
+npm install
+npm start        # http://localhost:3000
+npm run build    # versión de producción en /build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+## Despliegue en Netlify
 
-### Analyzing the Bundle Size
+- Comando de build: `npm run build`
+- Directorio de publicación: `build`
+- `public/_redirects` contiene `/* /index.html 200` para que React Router funcione al recargar cualquier ruta.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+## Tecnologías
 
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+React 19, React-Bootstrap 2, Bootstrap 5, React Router 7, Create React App.
