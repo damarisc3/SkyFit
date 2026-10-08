@@ -21,3 +21,11 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# variables de entorno
+.env
+
+# archivos locales de la extension de Postman para VS Code
+.postman/
+postman/
+backend/Sky Fit API - Tarea 4/

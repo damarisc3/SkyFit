@@ -35,11 +35,18 @@ function NavigationBar() {
                 title={
                   <>
                     Hola, {user.nombre.split(" ")[0]}{" "}
-                    <Badge bg="light" text="dark" className="ms-1">{user.rol}</Badge>
+                    <Badge bg="light" text="dark" className="ms-1">
+                      {user.rol === "admin" ? "Admin" : user.membresia}
+                    </Badge>
                   </>
                 }
               >
                 <NavDropdown.Item as={NavLink} to="/perfil">Mi perfil</NavDropdown.Item>
+                {user.rol === "admin" && (
+                  <NavDropdown.Item as={NavLink} to="/admin/productos">
+                    Administrar productos
+                  </NavDropdown.Item>
+                )}
                 <NavDropdown.Divider />
                 <NavDropdown.Item onClick={cerrarSesion}>Cerrar sesión</NavDropdown.Item>
               </NavDropdown>

@@ -1,10 +1,10 @@
 // src/pages/Login.jsx
-// Formulario de inicio de sesión con validación y autenticación simulada.
+// Formulario de inicio de sesión: valida los campos y autentica contra POST /api/auth/login.
 import { useState } from "react";
 import { useNavigate, Navigate, Link } from "react-router-dom";
 import { Container, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useAuthState, useAuthDispatch, ACTIONS } from "../context/AuthContext";
-import { autenticar } from "../data/usuarios";
+import { loginApi } from "../api/client";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -46,22 +46,17 @@ function Login() {
 
     dispatch({ type: ACTIONS.LOGIN_START });
     try {
-      const usuario = await autenticar(correo, password);
-      // Acción global: registra la sesión con datos estructurados
+      const { usuario } = await loginApi(correo.trim(), password);
+      // Acción global: la respuesta verificada del servidor se guarda en el estado transversal
       dispatch({
         type: ACTIONS.LOGIN,
-        payload: {
-          nombre: usuario.nombre,
-          correo: usuario.correo,
-          rol: usuario.rol,
-          fechaAcceso: usuario.fechaAcceso,
-          miembroDesde: usuario.miembroDesde,
-          pedidos: usuario.pedidos,
-        },
+        payload: { ...usuario, fechaAcceso: new Date().toISOString() },
       });
       navigate("/perfil");
     } catch (err) {
-      dispatch({ type: ACTIONS.LOGIN_ERROR, payload: err.message });
+      const mensaje =
+        err.status === 401 ? "Correo o contraseña incorrectos. Verifica tus datos." : err.message;
+      dispatch({ type: ACTIONS.LOGIN_ERROR, payload: mensaje });
     }
   };
 
@@ -125,14 +120,6 @@ function Login() {
             ¿Aún no tienes cuenta? <Link to="/registro">Regístrate</Link>
           </p>
         </Card.Body>
-
-        <Card.Footer className="small text-muted">
-          <strong>Cuentas de prueba:</strong>
-          <br />
-          damaris@skyfit.com / skyfit123 (Premium)
-          <br />
-          ana@correo.com / ana12345 (Estándar)
-        </Card.Footer>
       </Card>
     </Container>
   );

@@ -7,9 +7,9 @@ import { createContext, useContext, useReducer, useEffect } from "react";
 // ---------- Estado inicial ----------
 export const initialState = {
   isAuthenticated: false,
-  user: null,        // { nombre, correo, rol, fechaAcceso, pedidos }
+  user: null,        // usuario devuelto por la API: { _id, nombre, correo, rol, membresia, pedidos, createdAt, ... }
   error: null,       // mensaje de error del último intento de login
-  loading: false,    // true mientras se "consulta" al servidor simulado
+  loading: false,    // true mientras se espera la respuesta de POST /api/auth/login
 };
 
 // ---------- Tipos de acción ----------
@@ -78,6 +78,8 @@ function cargarSesionGuardada() {
     const guardado = localStorage.getItem(STORAGE_KEY);
     if (!guardado) return initialState;
     const user = JSON.parse(guardado);
+    // Sesiones de la versión simulada (sin _id de MongoDB) ya no son válidas
+    if (!user?._id) return initialState;
     return { ...initialState, isAuthenticated: true, user };
   } catch {
     return initialState;

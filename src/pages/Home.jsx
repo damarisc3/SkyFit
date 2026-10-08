@@ -1,8 +1,21 @@
+import { useState, useEffect } from "react";
 import { Container, Carousel, Row, Col, Card, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import productos from "../data/productos";
+import { listarProductos } from "../api/client";
+import EstadoCarga from "../components/EstadoCarga";
 
 function Home() {
+  const [productos, setProductos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    listarProductos()
+      .then(setProductos)
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <>
       <Carousel>
@@ -30,16 +43,17 @@ function Home() {
         </p>
 
         <h2 className="mb-4">Outfits destacados</h2>
+        <EstadoCarga loading={loading} error={error} texto="Cargando outfits..." />
         <Row xs={1} md={3} className="g-4">
           {productos.slice(0, 3).map((prod) => (
-            <Col key={prod.id}>
+            <Col key={prod._id}>
               <Card className="h-100 card-product">
                 <Card.Img variant="top" src={prod.imagen} />
                 <Card.Body className="d-flex flex-column">
                   <Card.Subtitle className="badge-marca mb-1">{prod.marca}</Card.Subtitle>
                   <Card.Title>{prod.nombre}</Card.Title>
                   <Card.Text className="fw-bold">Q{prod.precio.toFixed(2)}</Card.Text>
-                  <Button as={Link} to={`/producto/${prod.id}`} variant="dark" className="mt-auto">
+                  <Button as={Link} to={`/producto/${prod._id}`} variant="dark" className="mt-auto">
                     Ver más
                   </Button>
                 </Card.Body>

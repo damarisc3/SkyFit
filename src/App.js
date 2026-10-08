@@ -11,6 +11,7 @@ import Registro from "./pages/Registro";
 import Contacto from "./pages/Contacto";
 import Login from "./pages/Login";
 import Perfil from "./pages/Perfil";
+import AdminProductos from "./pages/AdminProductos";
 
 function App() {
   return (
@@ -31,6 +32,14 @@ function App() {
             element={
               <RutaProtegida>
                 <Perfil />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/admin/productos"
+            element={
+              <RutaProtegida soloAdmin>
+                <AdminProductos />
               </RutaProtegida>
             }
           />

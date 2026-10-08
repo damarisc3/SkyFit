@@ -1,0 +1,183 @@
+{
+  "info": {
+    "name": "Sky Fit API - Tarea 4",
+    "description": "Colección de pruebas de la API RESTful de Sky Fit (Node.js + Express + MongoDB Atlas). Cambia la variable baseUrl por la URL de Render para probar el backend desplegado. El login guarda userId y el POST de productos guarda productoId automáticamente.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000/api" },
+    { "key": "userId", "value": "" },
+    { "key": "productoId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"María López\",\n  \"correo\": \"maria@correo.com\",\n  \"password\": \"maria123\",\n  \"telefono\": \"5555-1234\",\n  \"direccion\": \"Zona 10, Ciudad de Guatemala\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "description": "201: usuario creado (sin contraseña en la respuesta). 400: faltan campos. 409: el correo ya existe."
+          }
+        },
+        {
+          "name": "Login (correcto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "if (json.usuario) pm.collectionVariables.set('userId', json.usuario._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"skyfit123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "200: devuelve { mensaje, usuario } y guarda userId en las variables de la colección."
+          }
+        },
+        {
+          "name": "Login (credenciales inválidas → 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('Status 401', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"incorrecta\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Obtener perfil por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/{{userId}}",
+            "description": "Ejecuta primero 'Login (correcto)' para llenar userId. 404 si no existe, 400 si el id no es válido."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar todos",
+          "request": { "method": "GET", "url": "{{baseUrl}}/productos" }
+        },
+        {
+          "name": "Buscar por texto (q)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/productos?q=gymshark",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"],
+              "query": [{ "key": "q", "value": "gymshark", "description": "Busca en nombre, marca y descripción" }]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por categoría y precio",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/productos?categoria=Tops y Sports Bra&min=100&max=300",
+              "host": ["{{baseUrl}}"],
+              "path": ["productos"],
+              "query": [
+                { "key": "categoria", "value": "Tops y Sports Bra" },
+                { "key": "min", "value": "100" },
+                { "key": "max", "value": "300" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('productoId', pm.response.json()._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Legging Flare Negro\",\n  \"marca\": \"Alo Yoga\",\n  \"categoria\": \"Leggings\",\n  \"precio\": 490,\n  \"tallas\": \"XS, S, M, L\",\n  \"color\": \"Negro\",\n  \"stock\": 7,\n  \"imagen\": \"https://placehold.co/600x600?text=Legging+Flare\",\n  \"descripcion\": \"Legging acampanado de tiro alto.\"\n}"
+            },
+            "url": "{{baseUrl}}/productos",
+            "description": "201: producto creado (guarda productoId). 400: errores de validación (ej. precio negativo, falta marca)."
+          }
+        },
+        {
+          "name": "Obtener producto por id",
+          "request": { "method": "GET", "url": "{{baseUrl}}/productos/{{productoId}}" }
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 450,\n  \"stock\": 12\n}"
+            },
+            "url": "{{baseUrl}}/productos/{{productoId}}",
+            "description": "Actualiza solo los campos enviados y devuelve el producto actualizado."
+          }
+        },
+        {
+          "name": "Eliminar producto",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/productos/{{productoId}}",
+            "description": "200: { mensaje, producto }. 404 si ya no existe."
+          }
+        },
+        {
+          "name": "Producto inexistente (→ 404)",
+          "request": { "method": "GET", "url": "{{baseUrl}}/productos/000000000000000000000000" }
+        }
+      ]
+    }
+  ]
+}
