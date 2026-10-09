@@ -5,8 +5,8 @@ En esta tarea conecté el frontend con un backend real hecho con Node.js, Expres
 Ya no hay datos ni login simulados: los usuarios y los productos se guardan en la base de datos
 y el frontend los consume con `fetch`.
 
-- Frontend (Netlify): [PENDIENTE - link de Netlify]
-- Backend (Render): [PENDIENTE - link de Render]
+- Frontend (Netlify): https://tarea-4-sky-fit.netlify.app
+- Backend (Render): https://skyfit.onrender.com (API: https://skyfit.onrender.com/api)
 - Repositorio: https://github.com/damarisc3/SkyFit (rama `Tarea4`)
 
 ## Datos del estudiante
@@ -142,8 +142,8 @@ Respuesta con credenciales inválidas (`401`):
 ### Colección de pruebas
 
 El archivo [`backend/SkyFit-API.postman_collection.json`](backend/SkyFit-API.postman_collection.json)
-se puede importar en Postman o Thunder Client. Tiene la variable `baseUrl` (cámbiala por la URL de
-Render para probar el backend desplegado). Al hacer login se guarda `userId` y al crear un producto
+se puede importar en Postman o Thunder Client. Tiene la variable `baseUrl` (cámbiala por
+`https://skyfit.onrender.com/api` para probar el backend desplegado). Al hacer login se guarda `userId` y al crear un producto
 se guarda `productoId`, así los demás requests funcionan sin copiar ids a mano.
 
 ## Cambios en el frontend
