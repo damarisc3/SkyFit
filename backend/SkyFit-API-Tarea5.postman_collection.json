@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "Sky Fit API - Tarea 5 (JWT)",
-    "description": "API de Sky Fit protegida con JSON Web Tokens (expiración de 5 minutos).\n\n1. Ejecuta 'JWT - Tarea 5 / 1. Login' → guarda el token en la variable {{token}}.\n2. Ejecuta '2. Perfil con Bearer válido' → 200.\n3. Espera más de 5 minutos y ejecuta '3. Perfil con token expirado' → 401 token_expired.\n\nLa colección usa Bearer {{token}} por defecto (todo el CRUD de productos es privado); solo registro y login usan 'No Auth'. Crear/editar/eliminar productos usa {{adminToken}} (ejecuta 'Login admin' primero). Cambia baseUrl por https://skyfit.onrender.com/api para probar el backend desplegado.",
+    "description": "API de Sky Fit protegida con JSON Web Tokens (expiración de 5 minutos).\n\n1. Ejecuta 'JWT - Tarea 5 / 1. Login' → guarda el token en la variable {{token}}.\n2. Ejecuta '2. Perfil con Bearer válido' → 200.\n3. Espera más de 5 minutos y ejecuta '3. Perfil con token expirado' → 401 token_expired.\n\nLa colección usa Bearer {{token}} por defecto (todo el CRUD de productos es privado); solo registro y login usan 'No Auth'. Crear/editar/eliminar productos usa {{adminToken}} (ejecuta 'Login admin' primero). Cambia baseUrl por https://skyfit-t5.onrender.com/api para probar el backend desplegado.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
