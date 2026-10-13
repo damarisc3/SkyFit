@@ -10,7 +10,7 @@ cuando vence, la página le avisa a la usuaria y la regresa al login.
 ## Links
 
 - Frontend (Netlify): https://sky-fit-t5.netlify.app
-- Backend (Render): https://skyfit-t5.onrender.com/api
+- Backend (Render): https://skyfit-t5.onrender.com (las rutas de la API empiezan con `/api`, por ejemplo `/api/auth/login`)
 - Repositorio: https://github.com/damarisc3/SkyFit (rama `Tarea5`)
 
 ## Integrantes
