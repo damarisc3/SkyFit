@@ -2,19 +2,29 @@ import { useState, useEffect } from "react";
 import { Container, Carousel, Row, Col, Card, Button } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import { listarProductos } from "../api/client";
+import { useAuthState } from "../context/AuthContext";
 import EstadoCarga from "../components/EstadoCarga";
 
 function Home() {
+  const { isAuthenticated } = useAuthState();
   const [productos, setProductos] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // GET /api/productos es privado: solo se consulta si hay sesión (token) activa
   useEffect(() => {
+    if (!isAuthenticated) {
+      setProductos([]);
+      setError(null);
+      return;
+    }
+    setLoading(true);
+    setError(null);
     listarProductos()
       .then(setProductos)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, []);
+  }, [isAuthenticated]);
 
   return (
     <>
@@ -43,6 +53,18 @@ function Home() {
         </p>
 
         <h2 className="mb-4">Outfits destacados</h2>
+        {!isAuthenticated && (
+          <Card className="text-center shadow-sm">
+            <Card.Body className="p-4">
+              <Card.Title>Inicia sesión para ver nuestros outfits</Card.Title>
+              <Card.Text className="text-muted">
+                El catálogo es exclusivo para clientas registradas.
+              </Card.Text>
+              <Button as={Link} to="/login" className="btn-skyfit me-2">Iniciar sesión</Button>
+              <Button as={Link} to="/registro" variant="outline-dark">Crear cuenta</Button>
+            </Card.Body>
+          </Card>
+        )}
         <EstadoCarga loading={loading} error={error} texto="Cargando outfits..." />
         <Row xs={1} md={3} className="g-4">
           {productos.slice(0, 3).map((prod) => (

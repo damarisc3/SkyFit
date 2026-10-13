@@ -9,6 +9,12 @@ const usuarioRoutes = require("./routes/usuarioRoutes");
 const productoRoutes = require("./routes/productoRoutes");
 const { noEncontrado, errorHandler } = require("./middleware/errorHandler");
 
+// Sin clave secreta no se pueden firmar ni verificar tokens
+if (!process.env.JWT_SECRET) {
+  console.error("❌ Falta la variable de entorno JWT_SECRET");
+  process.exit(1);
+}
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 

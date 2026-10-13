@@ -58,14 +58,14 @@ function Registro() {
 
     setEnviando(true);
     try {
-      const { usuario } = await registerApi({
+      const { usuario, token } = await registerApi({
         nombre: `${form.nombres.trim()} ${form.apellidos.trim()}`,
         correo: form.correo.trim(),
         telefono: form.telefono.trim(),
         direccion: form.direccion.trim(),
         password: form.password,
       });
-      login({ ...usuario, fechaAcceso: new Date().toISOString() });
+      login({ ...usuario, fechaAcceso: new Date().toISOString() }, token);
       navigate("/perfil");
     } catch (err) {
       setErrorServidor(err.message);

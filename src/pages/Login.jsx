@@ -1,7 +1,7 @@
 // src/pages/Login.jsx
 // Formulario de inicio de sesión: valida los campos y autentica contra POST /api/auth/login.
 import { useState } from "react";
-import { useNavigate, Navigate, Link } from "react-router-dom";
+import { useNavigate, Navigate, Link, useLocation } from "react-router-dom";
 import { Container, Card, Form, Button, Alert, Spinner } from "react-bootstrap";
 import { useAuthState, useAuthDispatch, ACTIONS } from "../context/AuthContext";
 import { loginApi } from "../api/client";
@@ -9,9 +9,11 @@ import { loginApi } from "../api/client";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function Login() {
-  const { isAuthenticated, loading, error } = useAuthState();
+  const { isAuthenticated, loading, error, sesionExpirada } = useAuthState();
   const dispatch = useAuthDispatch();
   const navigate = useNavigate();
+  // Ruta protegida que la usuaria intentó abrir sin sesión (la guarda RutaProtegida)
+  const desde = useLocation().state?.desde;
 
   const [correo, setCorreo] = useState("");
   const [password, setPassword] = useState("");
@@ -19,7 +21,7 @@ function Login() {
 
   // Si ya hay sesión activa no tiene sentido mostrar el login
   if (isAuthenticated) {
-    return <Navigate to="/perfil" replace />;
+    return <Navigate to={desde || "/perfil"} replace />;
   }
 
   // Validación de campos: devuelve un objeto con los errores encontrados
@@ -46,13 +48,13 @@ function Login() {
 
     dispatch({ type: ACTIONS.LOGIN_START });
     try {
-      const { usuario } = await loginApi(correo.trim(), password);
-      // Acción global: la respuesta verificada del servidor se guarda en el estado transversal
+      const { usuario, token } = await loginApi(correo.trim(), password);
+      // Acción global: el usuario y el JWT del servidor se guardan en el estado transversal
       dispatch({
         type: ACTIONS.LOGIN,
-        payload: { ...usuario, fechaAcceso: new Date().toISOString() },
+        payload: { user: { ...usuario, fechaAcceso: new Date().toISOString() }, token },
       });
-      navigate("/perfil");
+      navigate(desde || "/perfil", { replace: true });
     } catch (err) {
       const mensaje =
         err.status === 401 ? "Correo o contraseña incorrectos. Verifica tus datos." : err.message;
@@ -66,6 +68,22 @@ function Login() {
         <Card.Body className="p-4">
           <h1 className="h3 mb-1 text-center">Iniciar sesión</h1>
           <p className="text-center text-muted mb-4">Bienvenida de nuevo a Sky Fit</p>
+
+          {/* Aviso cuando la sesión se cerró porque el token expiró o dejó de ser válido */}
+          {sesionExpirada && (
+            <Alert
+              variant="warning"
+              dismissible
+              onClose={() => dispatch({ type: ACTIONS.LIMPIAR_AVISO_SESION })}
+            >
+              <Alert.Heading as="h2" className="h6 mb-1">Sesión finalizada</Alert.Heading>
+              Su sesión ya no es válida o ha caducado. Por favor, inicie sesión nuevamente.
+            </Alert>
+          )}
+
+          {desde && !sesionExpirada && (
+            <Alert variant="info">Inicia sesión para ver esta sección de la tienda.</Alert>
+          )}
 
           {error && (
             <Alert

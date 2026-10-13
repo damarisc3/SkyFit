@@ -1,13 +1,16 @@
-# Sky Fit - Tarea 4
+# Sky Fit - Tarea 5
 
-Tienda en línea de ropa fitness para mujer hecha con React, React-Bootstrap y React Router.
-En esta tarea conecté el frontend con un backend real hecho con Node.js, Express y MongoDB Atlas.
-Ya no hay datos ni login simulados: los usuarios y los productos se guardan en la base de datos
-y el frontend los consume con `fetch`.
+Tienda en línea de ropa fitness para mujer hecha con React, React-Bootstrap y React Router, con un
+backend en Node.js, Express y MongoDB Atlas.
+
+En esta tarea agregué seguridad **sin estado (stateless)** con **JSON Web Tokens**: el login devuelve
+un token firmado que vence a los **5 minutos**, las rutas privadas de la API exigen
+`Authorization: Bearer <token>` y el frontend detecta cuando la sesión caducó, avisa a la usuaria y
+la redirige al login.
 
 - Frontend (Netlify): https://tarea-4-sky-fit.netlify.app
 - Backend (Render): https://skyfit.onrender.com (API: https://skyfit.onrender.com/api)
-- Repositorio: https://github.com/damarisc3/SkyFit (rama `Tarea4`)
+- Repositorio: https://github.com/damarisc3/SkyFit (rama `Tarea5`)
 
 ## Datos del estudiante
 
@@ -15,15 +18,16 @@ y el frontend los consume con `fetch`.
 - Carné: 9490-23-3042
 - Curso: Desarrollo Web - 8vo semestre
 
-Hice todo el proyecto yo sola: backend completo (conexión, modelos, controladores, rutas y todos los
-endpoints), la conexión del frontend con la API, el panel de administración y el despliegue.
+| Nombre completo | Carné | Responsabilidades | Componentes desarrollados |
+|---|---|---|---|
+| Damaris Luz Marié Cabrera Carino | 9490-23-3042 | Desarrollo completo (trabajo individual): seguridad del backend con JWT, protección de endpoints, cliente HTTP con interceptor, manejo de sesión expirada en React, pruebas en Postman, documentación y despliegue | **Backend:** `middleware/auth.js` (`generarToken`, `protegerRuta`, `soloAdmin`), login/registro con token en `authController.js`, CRUD de productos protegido en `productoRoutes.js` y perfil protegido en `usuarioRoutes.js`. **Frontend:** `api/client.js` (Bearer automático + interceptor 401), rutas protegidas en `App.js` y `RutaProtegida.jsx`, `context/AuthContext.jsx` (token en estado global, LOGOUT por expiración, temporizador), `components/ManejadorSesion.jsx` (redirección con `useNavigate`), aviso en `pages/Login.jsx`. **Pruebas:** `SkyFit-API-Tarea5.postman_collection.json` |
 
 ## Tecnologías
 
 | Parte | Tecnologías |
 |---|---|
 | Frontend | React 19, React-Bootstrap, React Router, Context API + useReducer, fetch |
-| Backend | Node.js, Express 5, Mongoose, bcryptjs, cors, dotenv |
+| Backend | Node.js, Express 5, Mongoose, bcryptjs, jsonwebtoken, cors, dotenv |
 | Base de datos | MongoDB Atlas (clúster gratuito M0) |
 
 ## Arquitectura de carpetas del backend
@@ -36,7 +40,7 @@ backend/
 ├── server.js                  # Arranca Express, CORS, JSON y monta las rutas
 ├── seed.js                    # Carga los productos y usuarios iniciales en Atlas
 ├── .env.example               # Variables necesarias (el .env real NO se sube)
-├── SkyFit-API.postman_collection.json
+├── SkyFit-API-Tarea5.postman_collection.json
 ├── config/
 │   └── db.js                  # Conexión a MongoDB Atlas con Mongoose y manejo de errores
 ├── models/
@@ -51,31 +55,115 @@ backend/
 │   ├── usuarioRoutes.js       # /api/usuarios
 │   └── productoRoutes.js      # /api/productos
 └── middleware/
+    ├── auth.js                # JWT: generarToken, protegerRuta (401) y soloAdmin (403)
     └── errorHandler.js        # 404 de rutas y errores (validación 400, id inválido 400, duplicado 409, 500)
 ```
 
-Flujo de una petición:
+Flujo de una petición protegida:
 
 ```
-React (fetch) ──► routes ──► controller ──► model (Mongoose) ──► MongoDB Atlas
-      ▲                                                               │
-      └──────────────────── respuesta JSON ◄──────────────────────────┘
+React (fetch + Bearer) ──► routes ──► protegerRuta (JWT) ──► controller ──► model ──► MongoDB Atlas
+        ▲                                   │ 401 si falta / expiró / es inválido          │
+        └──────────────────────── respuesta JSON ◄──────────────────────────────────────────┘
+```
+
+## Seguridad con JWT (Tarea 5)
+
+### Cómo se configuró la expiración en el backend
+
+1. **Variables de entorno** (`backend/.env`, que no se sube a GitHub):
+   ```
+   JWT_SECRET=<clave aleatoria de 96 caracteres>
+   JWT_EXPIRES_IN=5m
+   ```
+   En Render se configuran las mismas dos variables en *Environment*. Si falta `JWT_SECRET`, el
+   servidor no arranca (`server.js` lo valida al iniciar).
+
+2. **Generación del token** (`middleware/auth.js` → `generarToken`): cuando `POST /api/auth/login`
+   valida el correo y la contraseña con bcrypt, firma el token con la librería `jsonwebtoken`:
+   ```js
+   jwt.sign(
+     { id: usuario._id, email: usuario.correo, role: usuario.rol },  // payload
+     process.env.JWT_SECRET,
+     { expiresIn: process.env.JWT_EXPIRES_IN }                        // "5m"
+   );
+   ```
+   `expiresIn` agrega al token el campo `exp` (fecha de vencimiento), que queda exactamente
+   300 segundos después de `iat` (fecha de emisión). Como el token va firmado, nadie puede cambiar
+   `exp` sin invalidar la firma.
+
+3. **Middleware `protegerRuta`**: lee la cabecera `Authorization: Bearer <token>` y la verifica con
+   `jwt.verify(token, JWT_SECRET)`, que comprueba la firma y la fecha `exp`:
+   - Sin cabecera o sin token → `401` con `error: "token_missing"`.
+   - Token vencido (`TokenExpiredError`) → `401` con:
+     ```json
+     {
+       "error": "token_expired",
+       "message": "La sesión ha expirado o ya no es válida. Por favor, inicie sesión nuevamente."
+     }
+     ```
+   - Firma alterada o token mal formado → `401` con `error: "token_invalid"`.
+   - Token válido → guarda el payload en `req.usuario` y deja pasar la petición.
+
+4. **`soloAdmin`**: se usa después de `protegerRuta` y responde `403` si el `role` del token no es
+   `admin`.
+
+El servidor no guarda sesiones: toda la información necesaria viaja dentro del token.
+
+### Cómo el frontend intercepta la expiración y redirige
+
+1. **Persistencia y estado global** (`src/context/AuthContext.jsx`, Context API + `useReducer`):
+   al iniciar sesión se despacha `LOGIN` con `{ user, token }`. El token se guarda en el estado
+   global y en `localStorage` (`skyfit_token`), así la sesión sobrevive a un refresh. Al recargar,
+   si el token guardado ya venció, no se restaura la sesión.
+
+2. **Cliente HTTP centralizado** (`src/api/client.js`): la función `request()` (envoltorio de
+   `fetch`) por la que pasan **todas** las peticiones agrega automáticamente
+   `Authorization: Bearer <token>`.
+
+3. **Interceptor de respuestas**: en la misma función `request()`, si la API responde `401` a una
+   petición que llevaba token:
+   1. Elimina el token y los datos de la usuaria de `localStorage`.
+   2. Llama al manejador que registró `AuthContext`, que despacha `LOGOUT` con
+      `{ expirada: true }`. El reducer limpia la sesión y marca `sesionExpirada: true`.
+
+4. **Redirección automática** (`src/components/ManejadorSesion.jsx`): este componente vive dentro
+   de `<BrowserRouter>`, observa `sesionExpirada` y, cuando se vuelve `true`, ejecuta
+   `navigate("/login", { replace: true })` con `useNavigate`.
+
+5. **Mensaje a la usuaria** (`src/pages/Login.jsx`): si `sesionExpirada` es `true` se muestra un
+   `Alert` de React-Bootstrap: *"Su sesión ya no es válida o ha caducado. Por favor, inicie sesión
+   nuevamente."*
+
+6. **Temporizador (extra)**: `AuthContext` lee el campo `exp` del token y programa un
+   `setTimeout` que despacha el mismo `LOGOUT` justo cuando vence. Así la usuaria sale aunque no
+   haga ninguna petición. Igual, quien decide si el token es válido siempre es el backend.
+
+```
+API responde 401 ──► client.js limpia localStorage ──► dispatch(LOGOUT expirada)
+                                                              │
+                     Login muestra Alert ◄── navigate("/login") ◄── ManejadorSesion
 ```
 
 ## Endpoints
 
 URL base local: `http://localhost:5000/api`
 
-| Método | Endpoint | Descripción | Respuestas |
-|---|---|---|---|
-| POST | `/auth/register` | Registra un usuario nuevo (rol `cliente`) | 201, 400, 409 |
-| POST | `/auth/login` | Valida correo y contraseña contra la BD | 200, 400, 401 |
-| GET | `/usuarios/:id` | Datos del perfil del usuario | 200, 400, 404 |
-| GET | `/productos` | Lista productos. Filtros: `q`, `categoria`, `marca`, `min`, `max` | 200 |
-| GET | `/productos/:id` | Detalle de un producto | 200, 400, 404 |
-| POST | `/productos` | Crea un producto | 201, 400 |
-| PUT | `/productos/:id` | Actualiza un producto | 200, 400, 404 |
-| DELETE | `/productos/:id` | Elimina un producto | 200, 400, 404 |
+| Método | Endpoint | Acceso | Descripción | Respuestas |
+|---|---|---|---|---|
+| POST | `/auth/register` | Público | Registra un usuario nuevo (rol `cliente`) y devuelve token | 201, 400, 409 |
+| POST | `/auth/login` | Público | Valida credenciales y devuelve el JWT (5 min) | 200, 400, 401 |
+| GET | `/usuarios/:id` | 🔒 Token (solo su propio perfil o admin) | Datos del perfil del usuario | 200, 400, 401, 403, 404 |
+| GET | `/productos` | 🔒 Token | Lista productos. Filtros: `q`, `categoria`, `marca`, `min`, `max` | 200, 401 |
+| GET | `/productos/:id` | 🔒 Token | Detalle de un producto | 200, 400, 401, 404 |
+| POST | `/productos` | 🔒 Token + admin | Crea un producto | 201, 400, 401, 403 |
+| PUT | `/productos/:id` | 🔒 Token + admin | Actualiza un producto | 200, 400, 401, 403, 404 |
+| DELETE | `/productos/:id` | 🔒 Token + admin | Elimina un producto | 200, 400, 401, 403, 404 |
+
+Todo el CRUD de **Productos** (la entidad de negocio) es privado: en `productoRoutes.js` se aplica
+`router.use(protegerRuta)`, así que cualquier consulta o cambio necesita la cabecera
+`Authorization: Bearer <token>`. Las consultas `GET` las puede hacer cualquier usuaria autenticada.
+Crear, editar y eliminar además requieren rol `admin`. Solo el registro y el login son públicos.
 
 ### Ejemplos de payload
 
@@ -99,6 +187,7 @@ Respuesta correcta (la contraseña nunca se devuelve):
 ```json
 {
   "mensaje": "Inicio de sesión exitoso.",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "usuario": {
     "_id": "6ac71a71e777b8e189d32d33",
     "nombre": "Damaris Cabrera",
@@ -141,14 +230,27 @@ Respuesta con credenciales inválidas (`401`):
 
 ### Colección de pruebas
 
-El archivo [`backend/SkyFit-API.postman_collection.json`](backend/SkyFit-API.postman_collection.json)
+El archivo [`backend/SkyFit-API-Tarea5.postman_collection.json`](backend/SkyFit-API-Tarea5.postman_collection.json)
 se puede importar en Postman o Thunder Client. Tiene la variable `baseUrl` (cámbiala por
-`https://skyfit.onrender.com/api` para probar el backend desplegado). Al hacer login se guarda `userId` y al crear un producto
-se guarda `productoId`, así los demás requests funcionan sin copiar ids a mano.
+`https://skyfit.onrender.com/api` para probar el backend desplegado).
+
+La carpeta **JWT - Tarea 5** tiene las pruebas pedidas:
+
+1. **Login (obtiene el token)**: guarda el token en `{{token}}` y comprueba que dure 300 segundos.
+2. **Perfil con Bearer válido** → `200`.
+3. **Perfil con token expirado**: se ejecuta después de esperar 5 minutos → `401` con
+   `error: "token_expired"`. Cada request incluye un ejemplo guardado con la respuesta obtenida.
+4. **Listar productos sin token** → `401`.
+5. **Crear producto sin token** → `401`.
+6. **Cliente intenta crear producto** → `403`.
+
+La colección usa `Bearer {{token}}` por defecto. Solo registro y login usan *No Auth*. Crear, editar
+o eliminar productos usa `{{adminToken}}`, que se guarda al ejecutar *Login admin*.
 
 ## Cambios en el frontend
 
 - `src/api/client.js`: todas las peticiones a la API con `fetch`. La URL sale de `REACT_APP_API_URL`.
+  Desde la Tarea 5 adjunta el token y tiene el interceptor de `401` (ver la sección de JWT).
 - **Login**: envía las credenciales a `POST /api/auth/login`. Si la respuesta es correcta se dispara la
   acción global `LOGIN` con el usuario que devolvió el servidor. Si es `401` se muestra un `Alert`.
 - **Registro**: ahora sí crea la cuenta en MongoDB y entra directo al perfil.
@@ -167,10 +269,17 @@ en la Tarea 3. Las acciones son las mismas (`LOGIN_START`, `LOGIN`, `LOGIN_ERROR
 
 ## Seguridad
 
+- Autenticación sin estado con **JWT** firmado con `JWT_SECRET` (HS256) y vigencia de 5 minutos.
+- Todas las rutas de productos y de usuarios usan el middleware `protegerRuta`. Las de administración
+  usan además `soloAdmin`.
+- En el frontend, Catálogo, Detalle de producto, Carrito y Perfil son rutas protegidas
+  (`RutaProtegida`). Sin sesión se redirige a `/login` y, al iniciar sesión, se vuelve a la página que
+  se quería abrir. En Inicio, las visitantes sin sesión ven una invitación a iniciar sesión.
+- Una usuaria solo puede consultar su propio perfil (`403` si pide el de otra persona).
 - Las contraseñas se guardan cifradas con **bcrypt**, nunca en texto plano.
 - La contraseña tiene `select: false` en el modelo y se elimina del JSON, así que nunca sale en las respuestas.
-- La cadena de conexión de Atlas está en `backend/.env`, que está en `.gitignore`. En el repositorio
-  solo está `.env.example` con valores de ejemplo.
+- La cadena de conexión de Atlas y el `JWT_SECRET` están en `backend/.env`, que está en `.gitignore`.
+  En el repositorio solo está `.env.example` con valores de ejemplo.
 - CORS solo acepta peticiones de los dominios definidos en `CLIENT_URL`.
 - El registro no acepta el campo `rol`: toda cuenta nueva es `cliente`.
 
@@ -180,7 +289,7 @@ en la Tarea 3. Las acciones son las mismas (`LOGIN_START`, `LOGIN`, `LOGIN_ERROR
    ```
    cd backend
    npm install
-   copy .env.example .env      (y poner la cadena de conexión real de Atlas)
+   copy .env.example .env      (poner la cadena de conexión de Atlas y un JWT_SECRET propio)
    npm run seed                (carga los datos iniciales, solo la primera vez)
    npm run dev
    ```
@@ -197,6 +306,8 @@ Variables de entorno:
 | `backend/.env` | `PORT` | `5000` |
 | `backend/.env` | `MONGO_URI` | `mongodb+srv://usuario:password@cluster0.xxxxx.mongodb.net/skyfit` |
 | `backend/.env` | `CLIENT_URL` | `http://localhost:3000,https://mi-sitio.netlify.app` |
+| `backend/.env` | `JWT_SECRET` | clave larga y aleatoria (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`) |
+| `backend/.env` | `JWT_EXPIRES_IN` | `5m` |
 | `.env` (raíz) | `REACT_APP_API_URL` | `http://localhost:5000/api` |
 
 ## Usuarios de prueba

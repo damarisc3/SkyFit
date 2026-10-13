@@ -1,5 +1,6 @@
 // controllers/authController.js
 const User = require("../models/User");
+const { generarToken } = require("../middleware/auth");
 
 // POST /api/auth/register
 async function register(req, res, next) {
@@ -17,7 +18,9 @@ async function register(req, res, next) {
 
     // El rol no se acepta desde el body: toda cuenta nueva es "cliente"
     const usuario = await User.create({ nombre, correo, password, telefono, direccion });
-    res.status(201).json({ mensaje: "Cuenta creada correctamente.", usuario });
+    // Se devuelve también un token para que la usuaria entre directo a su perfil
+    const token = generarToken(usuario);
+    res.status(201).json({ mensaje: "Cuenta creada correctamente.", token, usuario });
   } catch (error) {
     next(error);
   }
@@ -39,7 +42,9 @@ async function login(req, res, next) {
       return res.status(401).json({ mensaje: "Correo o contraseña incorrectos." });
     }
 
-    res.json({ mensaje: "Inicio de sesión exitoso.", usuario });
+    // Credenciales válidas: se firma un JWT que vence en 5 minutos
+    const token = generarToken(usuario);
+    res.json({ mensaje: "Inicio de sesión exitoso.", token, usuario });
   } catch (error) {
     next(error);
   }

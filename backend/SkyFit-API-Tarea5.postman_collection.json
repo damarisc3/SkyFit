@@ -1,0 +1,686 @@
+{
+  "info": {
+    "name": "Sky Fit API - Tarea 5 (JWT)",
+    "description": "API de Sky Fit protegida con JSON Web Tokens (expiración de 5 minutos).\n\n1. Ejecuta 'JWT - Tarea 5 / 1. Login' → guarda el token en la variable {{token}}.\n2. Ejecuta '2. Perfil con Bearer válido' → 200.\n3. Espera más de 5 minutos y ejecuta '3. Perfil con token expirado' → 401 token_expired.\n\nLa colección usa Bearer {{token}} por defecto (todo el CRUD de productos es privado); solo registro y login usan 'No Auth'. Crear/editar/eliminar productos usa {{adminToken}} (ejecuta 'Login admin' primero). Cambia baseUrl por https://skyfit.onrender.com/api para probar el backend desplegado.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "productoId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "JWT - Tarea 5",
+      "description": "Flujo completo del token: login, petición autorizada y petición con token vencido.",
+      "item": [
+        {
+          "name": "1. Login (obtiene el token)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test('Devuelve un token JWT', () => pm.expect(json.token).to.be.a('string'));",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('userId', json.usuario._id);",
+                  "// Muestra cuándo vence el token (exp viene en segundos)",
+                  "const payload = JSON.parse(atob(json.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')));",
+                  "console.log('Payload:', payload, 'Vence:', new Date(payload.exp * 1000).toLocaleTimeString());",
+                  "pm.test('Vida del token = 5 minutos', () => pm.expect(payload.exp - payload.iat).to.eql(300));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"skyfit123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Valida credenciales y firma un JWT con { id, email, role } que vence en 5 minutos."
+          },
+          "response": [
+            {
+              "name": "200 - token generado",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "auth": {
+                  "type": "noauth"
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"skyfit123\"\n}"
+                },
+                "url": "{{baseUrl}}/auth/login"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"mensaje\": \"Inicio de sesión exitoso.\",\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjZhYzcxYTcwZTc3N2I4ZTE4OWQzMmQzMyIsImVtYWlsIjoiZGFtYXJpc0Bza3lmaXQuY29tIiwicm9sZSI6ImNsaWVudGUiLCJpYXQiOjE3OTE4NTg3MTQsImV4cCI6MTc5MTg1OTAxNH0.<firma>\",\n  \"usuario\": {\n    \"_id\": \"6ac71a70e777b8e189d32d33\",\n    \"nombre\": \"Damaris Cabrera\",\n    \"correo\": \"damaris@skyfit.com\",\n    \"rol\": \"cliente\"\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Perfil con Bearer válido (→ 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/usuarios/{{userId}}",
+            "description": "Endpoint protegido. Envía Authorization: Bearer {{token}} dentro de los 5 minutos de vida del token."
+          },
+          "response": [
+            {
+              "name": "200 - acceso autorizado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{baseUrl}}/usuarios/{{userId}}"
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"_id\": \"6ac71a70e777b8e189d32d33\",\n  \"nombre\": \"Damaris Cabrera\",\n  \"correo\": \"damaris@skyfit.com\",\n  \"rol\": \"cliente\",\n  \"membresia\": \"Premium\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "3. Perfil con token expirado - esperar 5 min (→ 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error = token_expired', () => pm.expect(pm.response.json().error).to.eql('token_expired'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/usuarios/{{userId}}",
+            "description": "Misma petición que la 2, ejecutada DESPUÉS de que pasen los 5 minutos desde el login. El middleware captura TokenExpiredError y responde 401 con error 'token_expired'."
+          },
+          "response": [
+            {
+              "name": "401 - token expirado",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{token}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "url": "{{baseUrl}}/usuarios/{{userId}}"
+              },
+              "status": "Unauthorized",
+              "code": 401,
+              "_postman_previewlanguage": "json",
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json; charset=utf-8"
+                }
+              ],
+              "body": "{\n  \"error\": \"token_expired\",\n  \"message\": \"La sesión ha expirado o ya no es válida. Por favor, inicie sesión nuevamente.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. Listar productos sin token (→ 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));",
+                  "pm.test('error = token_missing', () => pm.expect(pm.response.json().error).to.eql('token_missing'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{baseUrl}}/productos",
+            "description": "Las consultas GET de productos también son privadas: sin Bearer → 401."
+          }
+        },
+        {
+          "name": "5. Crear producto sin token (→ 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/productos",
+            "description": "Sin cabecera Authorization el middleware responde 401."
+          }
+        },
+        {
+          "name": "6. Cliente intenta crear producto (→ 403)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 403', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}"
+            },
+            "url": "{{baseUrl}}/productos",
+            "description": "Token válido pero con rol cliente: solo admin puede crear productos."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Registrar usuario",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"María López\",\n  \"correo\": \"maria@correo.com\",\n  \"password\": \"maria123\",\n  \"telefono\": \"5555-1234\",\n  \"direccion\": \"Zona 10, Ciudad de Guatemala\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register",
+            "description": "201: usuario creado (sin contraseña en la respuesta). 400: faltan campos. 409: el correo ya existe.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login (correcto)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.collectionVariables.set('token', json.token);",
+                  "pm.collectionVariables.set('userId', json.usuario._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"skyfit123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "200: devuelve { mensaje, usuario } y guarda userId en las variables de la colección.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login (credenciales inválidas → 401)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 401', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"damaris@skyfit.com\",\n  \"password\": \"incorrecta\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login admin (guarda adminToken)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('adminToken', pm.response.json().token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@skyfit.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login",
+            "description": "Token con role admin, necesario para crear, editar y eliminar productos."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Obtener perfil por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/usuarios/{{userId}}",
+            "description": "Ruta protegida: requiere Bearer {{token}}. Una usuaria solo puede ver su propio perfil (403 si no)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Productos",
+      "item": [
+        {
+          "name": "Listar todos",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/productos",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Buscar por texto (q)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/productos?q=gymshark",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "gymshark",
+                  "description": "Busca en nombre, marca y descripción"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtrar por categoría y precio",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/productos?categoria=Tops y Sports Bra&min=100&max=300",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "productos"
+              ],
+              "query": [
+                {
+                  "key": "categoria",
+                  "value": "Tops y Sports Bra"
+                },
+                {
+                  "key": "min",
+                  "value": "100"
+                },
+                {
+                  "key": "max",
+                  "value": "300"
+                }
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Crear producto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('productoId', pm.response.json()._id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Legging Flare Negro\",\n  \"marca\": \"Alo Yoga\",\n  \"categoria\": \"Leggings\",\n  \"precio\": 490,\n  \"tallas\": \"XS, S, M, L\",\n  \"color\": \"Negro\",\n  \"stock\": 7,\n  \"imagen\": \"https://placehold.co/600x600?text=Legging+Flare\",\n  \"descripcion\": \"Legging acampanado de tiro alto.\"\n}"
+            },
+            "url": "{{baseUrl}}/productos",
+            "description": "201: producto creado (guarda productoId). 400: errores de validación (ej. precio negativo, falta marca).",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Obtener producto por id",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/productos/{{productoId}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Actualizar producto",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"precio\": 450,\n  \"stock\": 12\n}"
+            },
+            "url": "{{baseUrl}}/productos/{{productoId}}",
+            "description": "Actualiza solo los campos enviados y devuelve el producto actualizado.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Eliminar producto",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/productos/{{productoId}}",
+            "description": "200: { mensaje, producto }. 404 si ya no existe.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Producto inexistente (→ 404)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/productos/000000000000000000000000",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}

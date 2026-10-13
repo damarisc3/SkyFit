@@ -44,7 +44,8 @@ function Perfil() {
     } catch (err) {
       // Si la cuenta ya no existe en la BD, la sesión deja de ser válida
       if (err.status === 404 || err.status === 400) cerrarSesion();
-      else setError(err.message);
+      // 401: el interceptor del cliente HTTP ya cerró la sesión y redirige a /login
+      else if (err.status !== 401) setError(err.message);
     } finally {
       setLoading(false);
     }

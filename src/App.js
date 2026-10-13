@@ -3,6 +3,7 @@ import { AuthProvider } from "./context/AuthContext";
 import NavigationBar from "./components/NavigationBar";
 import Footer from "./components/Footer";
 import RutaProtegida from "./components/RutaProtegida";
+import ManejadorSesion from "./components/ManejadorSesion";
 import Home from "./pages/Home";
 import Catalogo from "./pages/Catalogo";
 import ProductoDetalle from "./pages/ProductoDetalle";
@@ -18,12 +19,35 @@ function App() {
     // AuthProvider envuelve toda la app: cualquier componente puede leer la sesión
     <AuthProvider>
       <BrowserRouter>
+        {/* Redirige a /login cuando la sesión expira (token de 5 minutos) */}
+        <ManejadorSesion />
         <NavigationBar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/catalogo" element={<Catalogo />} />
-          <Route path="/producto/:id" element={<ProductoDetalle />} />
-          <Route path="/carrito" element={<Carrito />} />
+          <Route
+            path="/catalogo"
+            element={
+              <RutaProtegida>
+                <Catalogo />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/producto/:id"
+            element={
+              <RutaProtegida>
+                <ProductoDetalle />
+              </RutaProtegida>
+            }
+          />
+          <Route
+            path="/carrito"
+            element={
+              <RutaProtegida>
+                <Carrito />
+              </RutaProtegida>
+            }
+          />
           <Route path="/registro" element={<Registro />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="/login" element={<Login />} />
